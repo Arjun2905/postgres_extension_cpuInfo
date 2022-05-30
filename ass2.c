@@ -60,7 +60,7 @@ void read_cpu_info(Tuplestorestate *tupstore, TupleDesc tupdesc)
     char model[MAXPGPATH];
     char model_name[MAXPGPATH];
     char cpu_mhz[MAXPGPATH];
-    char *line_buf = NULL;
+    char *line = NULL;
     size_t line_buf_size = 0;
     ssize_t line_size;
     bool model_found = false;
@@ -77,54 +77,54 @@ void read_cpu_info(Tuplestorestate *tupstore, TupleDesc tupdesc)
     memset(model_name, 0, MAXPGPATH);
     memset(cpu_mhz, 0, MAXPGPATH);
     file = fopen("/proc/cpuinfo", "r");
-    line_size = getline(&line_buf, &line_buf_size, file);
+    line_size = getline(&line, &line_buf_size, file);
 
     while (line_size >= 0)
     {
-        if (strlen(line_buf) > 0)
-            line_buf = trimStr(line_buf);
+        if (strlen(line) > 0)
+            line = trimStr(line);
 
-        if (!IS_EMPTY_STR(line_buf) && (strlen(line_buf) > 0))
+        if (!IS_EMPTY_STR(line) && (strlen(line) > 0))
         {
-            if (strlen(line_buf) > 0)
+            if (strlen(line) > 0)
             {
-                found = strstr(line_buf, ":");
+                found = strstr(line, ":");
                 if (strlen(found) > 0)
                 {
                     found = trimStr((found + 1));
 
-                    if (strstr(line_buf, "vendor_id") != NULL)
+                    if (strstr(line, "vendor_id") != NULL)
                         memcpy(vendor_id, found, strlen(found));
-                    if (strstr(line_buf, "model") != NULL && !model_found)
+                    if (strstr(line, "model") != NULL && !model_found)
                     {
                         memcpy(model, found, strlen(found));
                         model_found = true;
                     }
-                    if (strstr(line_buf, "model name") != NULL)
+                    if (strstr(line, "model name") != NULL)
                         memcpy(model_name, found, strlen(found));
-                    if (strstr(line_buf, "cpu MHz") != NULL)
+                    if (strstr(line, "cpu MHz") != NULL)
                     {
                         physical_processor++;
                         memcpy(cpu_mhz, found, strlen(found));
                     }
-                    if (strstr(line_buf, "cpu cores") != NULL)
+                    if (strstr(line, "cpu cores") != NULL)
                         cpu_cores = atoi(found);
                 }
             }
 
-            if (line_buf != NULL)
+            if (line != NULL)
             {
-                free(line_buf);
-                line_buf = NULL;
+                free(line);
+                line = NULL;
             }
         }
-        line_size = getline(&line_buf, &line_buf_size, file);
+        line_size = getline(&line, &line_buf_size, file);
     }
 
-    if (line_buf != NULL)
+    if (line != NULL)
     {
-        free(line_buf);
-        line_buf = NULL;
+        free(line);
+        line = NULL;
     }
 
     fclose(file);
