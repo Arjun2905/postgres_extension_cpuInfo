@@ -17,13 +17,11 @@
 PG_MODULE_MAGIC;
 
 void read_cpu_info(Tuplestorestate *tupstore, TupleDesc tupdesc);
-char *leftTrimStr(char *s);
-char *rightTrimStr(char *s);
 char *trimStr(char *s);
 
 PG_FUNCTION_INFO_V1(ass2);
 
-char *leftTrimStr(char *s)
+char *trimStr(char *s)
 {
     char *new_str = s;
     while (isspace(*new_str))
@@ -31,11 +29,6 @@ char *leftTrimStr(char *s)
         ++new_str;
     }
     memmove(s, new_str, strlen(new_str) + 1);
-    return s;
-}
-
-char *rightTrimStr(char *s)
-{
     char *end = s + strlen(s);
     while ((end != s) && isspace(*(end - 1)))
     {
@@ -43,11 +36,6 @@ char *rightTrimStr(char *s)
     }
     *end = '\0';
     return s;
-}
-
-char *trimStr(char *s)
-{
-    return rightTrimStr(leftTrimStr(s));
 }
 
 void read_cpu_info(Tuplestorestate *tupstore, TupleDesc tupdesc)
