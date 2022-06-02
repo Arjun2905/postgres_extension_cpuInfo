@@ -8,7 +8,6 @@
 #include <utils/builtins.h>
 
 #define SIZE 5
-#define IS_EMPTY_STR(X) ((1 / (sizeof(X[0]) == 1)) && !(X[0]))
 #define CPU_VENDOR 0
 #define MODEL_NAME 1
 #define PHY_PROCESSOR 2
@@ -18,8 +17,15 @@ PG_MODULE_MAGIC;
 
 void read_cpu_info(Tuplestorestate *tupstore, TupleDesc tupdesc);
 char *trimStr(char *s);
+bool checkAvailability(char *line, char arr[]);
 
 PG_FUNCTION_INFO_V1(ass2);
+
+bool checkAvailability(char *line, char arr[])
+{
+    char *result = strstr(line, arr);
+    return (result != NULL);
+}
 
 char *trimStr(char *s)
 {
@@ -49,6 +55,10 @@ void read_cpu_info(Tuplestorestate *tupstore, TupleDesc tupdesc)
     char model_name[MAXPGPATH];
     char cpu_mhz[MAXPGPATH];
     char *line = NULL;
+    bool is_vendor = false;
+    bool is_model_name = false;
+    // bool is_cpuMhz = false;
+    bool is_cpu_cores = false;
     size_t line_buf_size = 0;
     ssize_t line_size;
     bool model_found = false;
@@ -72,39 +82,48 @@ void read_cpu_info(Tuplestorestate *tupstore, TupleDesc tupdesc)
         if (strlen(line) > 0)
             line = trimStr(line);
 
-        if (!IS_EMPTY_STR(line) && (strlen(line) > 0))
+        if (strlen(line) > 0)
         {
-            if (strlen(line) > 0)
+            found = strstr(line, ":");
+            if (strlen(found) > 0)
             {
-                found = strstr(line, ":");
-                if (strlen(found) > 0)
+                found = trimStr((found + 1));
+                if (!is_vendor && checkAvailability(line, "vendor_id"))
                 {
-                    found = trimStr((found + 1));
+                    memcpy(vendor_id, found, strlen(found));
+                    is_vendor = true;
+                }
 
-                    if (strstr(line, "vendor_id") != NULL)
-                        memcpy(vendor_id, found, strlen(found));
-                    if (strstr(line, "model") != NULL && !model_found)
-                    {
-                        memcpy(model, found, strlen(found));
-                        model_found = true;
-                    }
-                    if (strstr(line, "model name") != NULL)
-                        memcpy(model_name, found, strlen(found));
-                    if (strstr(line, "cpu MHz") != NULL)
-                    {
-                        physical_processor++;
-                        memcpy(cpu_mhz, found, strlen(found));
-                    }
-                    if (strstr(line, "cpu cores") != NULL)
-                        cpu_cores = atoi(found);
+                if (!model_found && checkAvailability(line, "model"))
+                {
+                    memcpy(model, found, strlen(found));
+                    model_found = true;
+                }
+
+                if (!is_model_name && checkAvailability(line, "model name"))
+                {
+                    memcpy(model_name, found, strlen(found));
+                    is_model_name = true;
+                }
+
+                if (checkAvailability(line, "cpu MHz"))
+                {
+                    physical_processor++;
+                    memcpy(cpu_mhz, found, strlen(found));
+                }
+
+                if (!is_cpu_cores && checkAvailability(line, "cpu cores"))
+                {
+                    cpu_cores = atoi(found);
+                    is_cpu_cores = true;
                 }
             }
+        }
 
-            if (line != NULL)
-            {
-                free(line);
-                line = NULL;
-            }
+        if (line != NULL)
+        {
+            free(line);
+            line = NULL;
         }
         line_size = getline(&line, &line_buf_size, file);
     }
